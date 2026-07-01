@@ -1,1 +1,0 @@
-"""Rule generation orchestration (placeholder)."""

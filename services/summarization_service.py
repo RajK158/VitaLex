@@ -1,1 +1,0 @@
-"""Summarization orchestration (placeholder)."""
