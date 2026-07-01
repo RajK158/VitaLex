@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# VitaLex AI - runtime data (keep folder structure via .gitkeep, ignore contents)
+data/raw_uploads/*
+!data/raw_uploads/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/vector_store/*
+!data/vector_store/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep

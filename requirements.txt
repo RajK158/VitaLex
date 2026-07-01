@@ -1,0 +1,31 @@
+# --- Web / UI ---
+streamlit==1.38.0
+
+# --- LLM / Generative AI ---
+google-generativeai==0.8.3
+langchain==0.3.7
+langchain-community==0.3.7
+langchain-google-genai==2.0.4
+
+# --- Vector Store / RAG ---
+chromadb==0.5.20
+
+# --- PDF Processing ---
+PyMuPDF==1.24.13
+
+# --- Data Validation / Models ---
+pydantic==2.9.2
+pydantic-settings==2.6.1
+
+# --- Config / Environment ---
+python-dotenv==1.0.1
+
+# --- Rule Generation (YAML / tabular) ---
+PyYAML==6.0.2
+pandas==2.2.3
+
+# --- Utilities ---
+tiktoken==0.8.0
+
+# --- Testing ---
+pytest==8.3.3
