@@ -36,7 +36,7 @@ const riskBadgeStyles: Record<string, string> = {
   high: "border-red-500/40 text-red-400",
 }
 
-const EXTRACTED_TEXT_PREVIEW_LENGTH = 2000
+const EXTRACTED_TEXT_PREVIEW_LENGTH = 3000
 
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>()
@@ -46,6 +46,7 @@ export default function DocumentDetailPage() {
   const [rules, setRules] = useState<GeneratedRule[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState("")
+  const [showFullText, setShowFullText] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -214,23 +215,47 @@ export default function DocumentDetailPage() {
             </div>
 
             <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <h2 className="text-xl font-semibold">Extracted Text Preview</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-xl font-semibold">
+                  {showFullText
+                    ? "Extracted Text (Full)"
+                    : "Extracted Text Preview"}
+                </h2>
+
+                {doc.extracted_text &&
+                  doc.extracted_text.length > EXTRACTED_TEXT_PREVIEW_LENGTH && (
+                    <button
+                      onClick={() => setShowFullText((prev) => !prev)}
+                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                    >
+                      {showFullText ? "Show Preview" : "View Full Text"}
+                    </button>
+                  )}
+              </div>
+
               {doc.extracted_text ? (
                 <>
                   <div className="mt-4 max-h-96 overflow-y-auto rounded-xl border border-zinc-800 bg-black p-4">
                     <p className="whitespace-pre-line text-sm leading-6 text-zinc-300">
-                      {doc.extracted_text.slice(
-                        0,
-                        EXTRACTED_TEXT_PREVIEW_LENGTH
-                      )}
+                      {showFullText
+                        ? doc.extracted_text
+                        : doc.extracted_text.slice(
+                            0,
+                            EXTRACTED_TEXT_PREVIEW_LENGTH
+                          ) +
+                          (doc.extracted_text.length >
+                          EXTRACTED_TEXT_PREVIEW_LENGTH
+                            ? "..."
+                            : "")}
                     </p>
                   </div>
-                  {doc.extracted_text.length >
-                    EXTRACTED_TEXT_PREVIEW_LENGTH && (
-                    <p className="mt-2 text-xs text-zinc-500">
-                      Showing a preview of the extracted text.
-                    </p>
-                  )}
+                  {!showFullText &&
+                    doc.extracted_text.length >
+                      EXTRACTED_TEXT_PREVIEW_LENGTH && (
+                      <p className="mt-2 text-xs text-zinc-500">
+                        Showing first 3,000 characters of extracted text.
+                      </p>
+                    )}
                 </>
               ) : (
                 <p className="mt-3 text-sm text-zinc-400">
