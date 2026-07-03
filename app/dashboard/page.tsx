@@ -62,6 +62,39 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }
+
+  async function deleteDocument(doc: DocumentRow) {
+    const confirmed = window.confirm(
+      `Delete "${doc.file_name}"? This cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setLoading(true)
+      setMessage("Deleting document...")
+
+      const response = await fetch(`/api/documents/${doc.id}/delete`, {
+        method: "DELETE",
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setMessage(result.error || "Failed to delete document.")
+        return
+      }
+
+      if (summaryDoc?.id === doc.id) {
+        setSummaryDoc(null)
+      }
+
+      setMessage("Document deleted successfully.")
+      await fetchDocuments()
+    } finally {
+      setLoading(false)
+    }
+  }
   useEffect(() => {
     fetchDocuments()
   }, [])
@@ -270,6 +303,14 @@ export default function DashboardPage() {
                     <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300">
                         {doc.status}
                     </span>
+
+                    <button
+                      onClick={() => deleteDocument(doc)}
+                      disabled={loading}
+                      className="rounded-full border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:border-red-500/50 hover:text-red-400 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
                     </div>
                 </div>
               </div>
