@@ -17,6 +17,22 @@ type DocumentRow = {
   summary: string | null
 }
 
+type GeneratedRule = {
+  rule_id: string
+  title: string
+  condition: string
+  action: string
+  department: string
+  risk_level: string
+  source_reference: string
+}
+
+const riskBadgeStyles: Record<string, string> = {
+  low: "border-emerald-500/40 text-emerald-400",
+  medium: "border-amber-500/40 text-amber-400",
+  high: "border-red-500/40 text-red-400",
+}
+
 export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null)
   const [documentType, setDocumentType] = useState("Billing Policy")
@@ -26,6 +42,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [summaryDoc, setSummaryDoc] = useState<DocumentRow | null>(null)
+  const [rulesDoc, setRulesDoc] = useState<DocumentRow | null>(null)
+  const [rules, setRules] = useState<GeneratedRule[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState("All Types")
   const [statusFilter, setStatusFilter] = useState("All Statuses")
@@ -66,6 +84,30 @@ export default function DashboardPage() {
     }
   }
 
+  async function generateRules(doc: DocumentRow) {
+    try {
+      setLoading(true)
+      setMessage("Generating rules...")
+
+      const response = await fetch(`/api/documents/${doc.id}/rules`, {
+        method: "POST",
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setMessage(result.error || "Failed to generate rules.")
+        return
+      }
+
+      setRules(result.rules || [])
+      setRulesDoc(doc)
+      setMessage("Rules generated successfully.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function deleteDocument(doc: DocumentRow) {
     const confirmed = window.confirm(
       `Delete "${doc.file_name}"? This cannot be undone.`
@@ -92,6 +134,10 @@ export default function DashboardPage() {
         setSummaryDoc(null)
       }
 
+      if (rulesDoc?.id === doc.id) {
+        setRulesDoc(null)
+      }
+
       setMessage("Document deleted successfully.")
       await fetchDocuments()
     } finally {
@@ -103,15 +149,18 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    if (!summaryDoc) return
+    if (!summaryDoc && !rulesDoc) return
 
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setSummaryDoc(null)
+      if (e.key === "Escape") {
+        setSummaryDoc(null)
+        setRulesDoc(null)
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [summaryDoc])
+  }, [summaryDoc, rulesDoc])
 
   function clearFilters() {
     setSearchQuery("")
@@ -371,12 +420,21 @@ export default function DashboardPage() {
 
                   <div className="flex items-center gap-2">
                     {doc.status === "summarized" ? (
-                      <button
-                        onClick={() => setSummaryDoc(doc)}
-                        className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-zinc-200"
-                      >
-                        View Summary
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setSummaryDoc(doc)}
+                          className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-zinc-200"
+                        >
+                          View Summary
+                        </button>
+                        <button
+                          onClick={() => generateRules(doc)}
+                          disabled={loading}
+                          className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                        >
+                          Generate Rules
+                        </button>
+                      </>
                     ) : (
                       <button
                         onClick={() => generateSummary(doc.id)}
@@ -451,6 +509,84 @@ export default function DashboardPage() {
               <p className="whitespace-pre-line text-sm leading-6 text-zinc-300">
                 {summaryDoc.summary}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rulesDoc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setRulesDoc(null)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-white">
+                  Generated Rules — {rulesDoc.file_name}
+                </h3>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {rulesDoc.document_type || "Unknown type"} •{" "}
+                  {rulesDoc.payer || "No payer"} •{" "}
+                  {rulesDoc.department || "No department"}
+                </p>
+              </div>
+              <button
+                onClick={() => setRulesDoc(null)}
+                aria-label="Close rules"
+                className="shrink-0 rounded-full border border-zinc-800 px-3 py-1 text-sm text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {rules.map((rule) => (
+                <div
+                  key={rule.rule_id}
+                  className="rounded-xl border border-zinc-800 bg-black p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-white">
+                      {rule.rule_id} — {rule.title}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                        {rule.department}
+                      </span>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs ${
+                          riskBadgeStyles[rule.risk_level?.toLowerCase()] ||
+                          "border-zinc-700 text-zinc-300"
+                        }`}
+                      >
+                        {rule.risk_level} risk
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-6 text-zinc-300">
+                    <span className="font-medium text-zinc-400">If: </span>
+                    {rule.condition}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-zinc-300">
+                    <span className="font-medium text-zinc-400">Then: </span>
+                    {rule.action}
+                  </p>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    Source: {rule.source_reference}
+                  </p>
+                </div>
+              ))}
+
+              {rules.length === 0 && (
+                <p className="text-sm text-zinc-400">
+                  No rules were generated for this document.
+                </p>
+              )}
             </div>
           </div>
         </div>
