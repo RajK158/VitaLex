@@ -26,6 +26,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [summaryDoc, setSummaryDoc] = useState<DocumentRow | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [typeFilter, setTypeFilter] = useState("All Types")
+  const [statusFilter, setStatusFilter] = useState("All Statuses")
 
   async function fetchDocuments() {
     const { data, error } = await supabase
@@ -109,6 +112,29 @@ export default function DashboardPage() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [summaryDoc])
+
+  function clearFilters() {
+    setSearchQuery("")
+    setTypeFilter("All Types")
+    setStatusFilter("All Statuses")
+  }
+
+  const filteredDocuments = documents.filter((doc) => {
+    const query = searchQuery.trim().toLowerCase()
+    const matchesQuery =
+      !query ||
+      [doc.file_name, doc.payer, doc.department, doc.document_type].some(
+        (field) => field?.toLowerCase().includes(query)
+      )
+
+    const matchesType =
+      typeFilter === "All Types" || doc.document_type === typeFilter
+
+    const matchesStatus =
+      statusFilter === "All Statuses" || doc.status === statusFilter
+
+    return matchesQuery && matchesType && matchesStatus
+  })
 
   async function handleUpload() {
     if (!file) {
@@ -260,12 +286,73 @@ export default function DashboardPage() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-2xl font-semibold">
-            Uploaded documents
-          </h2>
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+            <h2 className="text-2xl font-semibold">
+              Uploaded documents
+            </h2>
+            <p className="text-sm text-zinc-400">
+              Showing {filteredDocuments.length} of {documents.length} documents
+            </p>
+          </div>
+
+          <div className="mb-6 grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm text-zinc-300">
+                Search
+              </label>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by file name, payer, or department"
+                className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm text-zinc-300">
+                Document type
+              </label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+              >
+                <option>All Types</option>
+                <option>Billing Policy</option>
+                <option>Coding Rule</option>
+                <option>Clinical Guideline</option>
+                <option>Payer-Provider Contract</option>
+                <option>Compliance Policy</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm text-zinc-300">
+                Status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+              >
+                <option>All Statuses</option>
+                <option value="uploaded">uploaded</option>
+                <option value="processing">processing</option>
+                <option value="summarized">summarized</option>
+                <option value="error">error</option>
+              </select>
+            </div>
+
+            <button
+              onClick={clearFilters}
+              className="rounded-xl border border-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-800 md:col-span-4 md:w-fit"
+            >
+              Clear Filters
+            </button>
+          </div>
 
           <div className="grid gap-4">
-            {documents.map((doc) => (
+            {filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
                 className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
@@ -319,6 +406,12 @@ export default function DashboardPage() {
             {documents.length === 0 && (
               <p className="text-zinc-400">
                 No documents uploaded yet.
+              </p>
+            )}
+
+            {documents.length > 0 && filteredDocuments.length === 0 && (
+              <p className="text-zinc-400">
+                No documents found. Try changing your search or filters.
               </p>
             )}
           </div>
