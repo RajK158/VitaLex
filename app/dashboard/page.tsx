@@ -14,6 +14,7 @@ type DocumentRow = {
   department: string | null
   status: string | null
   created_at: string
+  summary: string | null
 }
 
 export default function DashboardPage() {
@@ -38,7 +39,28 @@ export default function DashboardPage() {
 
     setDocuments(data || [])
   }
-
+  async function generateSummary(id: string) {
+    try {
+      setLoading(true)
+      setMessage("Generating summary...")
+  
+      const response = await fetch(`/api/documents/${id}/summarize`, {
+        method: "POST",
+      })
+  
+      const result = await response.json()
+  
+      if (!response.ok) {
+        setMessage(result.error || "Failed to generate summary.")
+        return
+      }
+  
+      setMessage("Summary generated successfully.")
+      await fetchDocuments()
+    } finally {
+      setLoading(false)
+    }
+  }
   useEffect(() => {
     fetchDocuments()
   }, [])
@@ -215,9 +237,26 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300">
-                    {doc.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => generateSummary(doc.id)}
+                        disabled={loading || doc.status === "summarized"}
+                        className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
+                    >
+                        {doc.status === "summarized" ? "Summarized" : "Generate Summary"}
+                    </button>
+
+                    <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300">
+                        {doc.status}
+                    </span>
+                    </div>
+                    {doc.summary && (
+                        <div className="mt-4 rounded-xl border border-zinc-800 bg-black p-4">
+                            <p className="whitespace-pre-line text-sm leading-6 text-zinc-300">
+                            {doc.summary}
+                            </p>
+                        </div>
+                        )}
                 </div>
               </div>
             ))}
