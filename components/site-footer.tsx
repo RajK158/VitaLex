@@ -28,15 +28,30 @@ function FacebookIcon() {
 const columns = [
   {
     heading: "Product",
-    links: ["Features", "Policy Comparison", "Rule Generation", "Integrations"],
+    links: [
+      { label: "Features", href: "#features" },
+      { label: "Policy Comparison", href: "#features" },
+      { label: "Rule Generation", href: "#rules" },
+      { label: "Integrations", href: "#features" },
+    ],
   },
   {
     heading: "Company",
-    links: ["About", "Security", "Compliance", "Contact"],
+    links: [
+      { label: "About", href: "#use-cases" },
+      { label: "Security", href: "#features" },
+      { label: "Compliance", href: "#impact" },
+      { label: "Contact", href: "mailto:hello@vitallex.com" },
+    ],
   },
   {
     heading: "Resources",
-    links: ["Documentation", "Help Center", "Privacy Policy", "Terms of Service"],
+    links: [
+      { label: "Documentation", href: "#rules" },
+      { label: "Help Center", href: "#features" },
+      { label: "Privacy Policy", href: "#contact" },
+      { label: "Terms of Service", href: "#contact" },
+    ],
   },
 ]
 
@@ -73,7 +88,7 @@ export function SiteFooter() {
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="size-4 text-primary" />
-                <span>Built for healthcare policy teams</span>
+                <span>LA, CA, USA</span>
               </li>
             </ul>
           </div>
@@ -85,16 +100,16 @@ export function SiteFooter() {
                 {col.heading}
               </h3>
               <ul className="mt-4 space-y-3">
-                {col.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
+              {col.links.map((link) => (
+                <li key={link.label}>
+                  <a
+                    href={link.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
               </ul>
             </nav>
           ))}
