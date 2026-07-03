@@ -34,7 +34,7 @@ const testimonials = [
 export function Testimonials() {
   return (
     <section
-      id="customers"
+      id="use-cases"
       className="relative overflow-hidden bg-primary py-20 text-primary-foreground sm:py-28"
     >
       <div

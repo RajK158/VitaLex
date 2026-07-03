@@ -67,13 +67,13 @@ export function SiteFooter() {
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="size-4 text-primary" />
-                <a href="tel:+18005550100" className="hover:text-foreground">
-                  +1 (800) 555-0100
+                <a href="tel:+18008008000" className="hover:text-foreground">
+                  +1 (800) 800-8000
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <MapPin className="size-4 text-primary" />
-                <span>500 Wellness Ave, Boston, MA</span>
+                <span>Built for healthcare policy teams</span>
               </li>
             </ul>
           </div>

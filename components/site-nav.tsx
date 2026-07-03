@@ -9,7 +9,7 @@ const navLinks = [
   { label: "Features", href: "#features" },
   { label: "Impact", href: "#impact" },
   { label: "Rule Export", href: "#rules" },
-  { label: "Customers", href: "#customers" },
+  { label: "Use Cases", href: "#use-cases" },
 ]
 
 export function SiteNav() {
