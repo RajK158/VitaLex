@@ -122,6 +122,18 @@ ${limitedContent}`,
       )
     }
 
+    const { error: deleteError } = await supabase
+      .from("vitalex_rules")
+      .delete()
+      .eq("document_id", document.id)
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: deleteError.message },
+        { status: 500 }
+      )
+    }
+
     const rowsToInsert = rules.map((rule) => ({
       document_id: document.id,
       rule_title: rule.title || rule.rule_id || "Generated Rule",
