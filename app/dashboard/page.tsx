@@ -66,6 +66,7 @@ const auditActionLabels: Record<string, string> = {
   exported_rules: "Exported rules",
   uploaded_document: "Uploaded document",
   deleted_document: "Deleted document",
+  updated_approval_status: "Updated approval status",
 }
 
 const auditExportFormatLabels: Record<string, string> = {
@@ -74,6 +75,8 @@ const auditExportFormatLabels: Record<string, string> = {
   python: "Python",
   pseudocode: "Pseudocode",
 }
+
+const RECENT_ACTIVITY_PREVIEW_COUNT = 2
 
 function formatAuditMetadata(metadata: Record<string, unknown> | null) {
   if (!metadata) return null
@@ -87,6 +90,22 @@ function formatAuditMetadata(metadata: Record<string, unknown> | null) {
         metadata.export_format
       }`
     )
+  }
+
+  if (typeof metadata.approval_status === "string") {
+    parts.push(
+      `Status: ${
+        approvalStatusLabels[metadata.approval_status] ||
+        metadata.approval_status
+      }`
+    )
+  }
+
+  if (
+    typeof metadata.approval_notes === "string" &&
+    metadata.approval_notes
+  ) {
+    parts.push(`Note: ${metadata.approval_notes}`)
   }
 
   if (typeof metadata.rule_count === "number") {
@@ -159,6 +178,7 @@ export default function DashboardPage() {
   const [approvalFilter, setApprovalFilter] = useState("All Approval Statuses")
   const [comparisonsCount, setComparisonsCount] = useState(0)
   const [auditLogs, setAuditLogs] = useState<AuditLogRow[]>([])
+  const [showAllActivity, setShowAllActivity] = useState(false)
 
   async function fetchDocuments() {
     const { data, error } = await supabase
@@ -546,10 +566,23 @@ export default function DashboardPage() {
         </section>
 
         <section className="mb-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-          <h2 className="text-lg font-semibold">Recent Activity</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Recent Activity</h2>
+            {auditLogs.length > RECENT_ACTIVITY_PREVIEW_COUNT && (
+              <button
+                onClick={() => setShowAllActivity((prev) => !prev)}
+                className="rounded-full border border-zinc-700 px-3 py-1 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+              >
+                {showAllActivity ? "Show less" : "View all activity"}
+              </button>
+            )}
+          </div>
 
           <div className="mt-4 grid gap-3">
-            {auditLogs.map((log) => {
+            {(showAllActivity
+              ? auditLogs
+              : auditLogs.slice(0, RECENT_ACTIVITY_PREVIEW_COUNT)
+            ).map((log) => {
               const metadataText = formatAuditMetadata(log.metadata)
 
               return (
