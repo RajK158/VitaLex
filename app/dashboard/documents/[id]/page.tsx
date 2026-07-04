@@ -18,6 +18,10 @@ type DocumentRow = {
   created_at: string
   summary: string | null
   extracted_text: string | null
+  approval_status: string | null
+  approved_at: string | null
+  published_at: string | null
+  approval_notes: string | null
 }
 
 type GeneratedRule = {
@@ -37,6 +41,20 @@ const riskBadgeStyles: Record<string, string> = {
 }
 
 const EXTRACTED_TEXT_PREVIEW_LENGTH = 3000
+
+const APPROVAL_STATUS_OPTIONS = [
+  { value: "draft", label: "Draft" },
+  { value: "in_review", label: "In Review" },
+  { value: "approved", label: "Approved" },
+  { value: "published", label: "Published" },
+]
+
+const approvalStatusLabels: Record<string, string> = {
+  draft: "Draft",
+  in_review: "In Review",
+  approved: "Approved",
+  published: "Published",
+}
 
 type RuleExportFormat = "json" | "pseudocode" | "sql" | "python"
 
@@ -83,6 +101,45 @@ export default function DocumentDetailPage() {
     RuleExportFormat | null
   >(null)
   const [exportMessage, setExportMessage] = useState("")
+  const [approvalStatusInput, setApprovalStatusInput] = useState("draft")
+  const [approvalNotesInput, setApprovalNotesInput] = useState("")
+  const [approvalUpdating, setApprovalUpdating] = useState(false)
+  const [approvalMessage, setApprovalMessage] = useState("")
+
+  async function updateApprovalStatus() {
+    if (!doc) return
+
+    try {
+      setApprovalUpdating(true)
+      setApprovalMessage("")
+
+      const response = await fetch(`/api/documents/${doc.id}/approval`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          approvalStatus: approvalStatusInput,
+          approvalNotes: approvalNotesInput,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setApprovalMessage(
+          result.error || "Failed to update approval status."
+        )
+        return
+      }
+
+      setDoc(result.document)
+      setApprovalNotesInput(result.document?.approval_notes || "")
+      setApprovalMessage("Approval status updated successfully.")
+    } catch {
+      setApprovalMessage("Failed to update approval status.")
+    } finally {
+      setApprovalUpdating(false)
+    }
+  }
 
   async function exportRulesInFormat(
     documentToExport: DocumentRow,
@@ -147,6 +204,8 @@ export default function DocumentDetailPage() {
       }
 
       setDoc(docData)
+      setApprovalStatusInput(docData.approval_status || "draft")
+      setApprovalNotesInput(docData.approval_notes || "")
 
       try {
         const response = await fetch("/api/rules")
@@ -221,6 +280,74 @@ export default function DocumentDetailPage() {
               <p className="mt-4 text-sm text-zinc-500">
                 Uploaded {new Date(doc.created_at).toLocaleString()}
               </p>
+            </div>
+
+            <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+              <h2 className="text-xl font-semibold">Approval Workflow</h2>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                  Status:{" "}
+                  {approvalStatusLabels[doc.approval_status || "draft"] ||
+                    "Draft"}
+                </span>
+                {doc.approved_at && (
+                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                    Approved: {new Date(doc.approved_at).toLocaleString()}
+                  </span>
+                )}
+                {doc.published_at && (
+                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                    Published: {new Date(doc.published_at).toLocaleString()}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-300">
+                    Approval status
+                  </label>
+                  <select
+                    value={approvalStatusInput}
+                    onChange={(e) => setApprovalStatusInput(e.target.value)}
+                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                  >
+                    {APPROVAL_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-300">
+                    Approval notes
+                  </label>
+                  <textarea
+                    value={approvalNotesInput}
+                    onChange={(e) => setApprovalNotesInput(e.target.value)}
+                    placeholder="Optional notes about this approval decision"
+                    rows={3}
+                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={updateApprovalStatus}
+                disabled={approvalUpdating}
+                className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
+              >
+                {approvalUpdating ? "Updating..." : "Update Status"}
+              </button>
+
+              {approvalMessage && (
+                <p className="mt-3 text-sm text-zinc-300">
+                  {approvalMessage}
+                </p>
+              )}
             </div>
 
             <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
