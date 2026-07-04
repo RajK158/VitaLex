@@ -38,6 +38,22 @@ const riskBadgeStyles: Record<string, string> = {
 
 const EXTRACTED_TEXT_PREVIEW_LENGTH = 3000
 
+function exportRulesAsJson(fileName: string, rulesToExport: GeneratedRule[]) {
+  const baseName = fileName.replace(/\.[^/.]+$/, "")
+  const blob = new Blob([JSON.stringify(rulesToExport, null, 2)], {
+    type: "application/json",
+  })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `vitalex-rules-${baseName}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>()
   const id = params?.id
@@ -161,7 +177,17 @@ export default function DocumentDetailPage() {
             </div>
 
             <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <h2 className="text-xl font-semibold">Generated Rules</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-xl font-semibold">Generated Rules</h2>
+                {rules.length > 0 && (
+                  <button
+                    onClick={() => exportRulesAsJson(doc.file_name, rules)}
+                    className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                  >
+                    Export JSON
+                  </button>
+                )}
+              </div>
               {rules.length > 0 ? (
                 <div className="mt-4 grid gap-3">
                   {rules.map((rule, index) => (

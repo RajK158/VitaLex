@@ -34,6 +34,22 @@ const riskBadgeStyles: Record<string, string> = {
   high: "border-red-500/40 text-red-400",
 }
 
+function exportRulesAsJson(fileName: string, rulesToExport: GeneratedRule[]) {
+  const baseName = fileName.replace(/\.[^/.]+$/, "")
+  const blob = new Blob([JSON.stringify(rulesToExport, null, 2)], {
+    type: "application/json",
+  })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `vitalex-rules-${baseName}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null)
   const [documentType, setDocumentType] = useState("Billing Policy")
@@ -597,13 +613,25 @@ export default function DashboardPage() {
                   {rulesDoc.department || "No department"}
                 </p>
               </div>
-              <button
-                onClick={() => setRulesDoc(null)}
-                aria-label="Close rules"
-                className="shrink-0 rounded-full border border-zinc-800 px-3 py-1 text-sm text-zinc-300 transition hover:bg-zinc-800"
-              >
-                Close
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                {rules.length > 0 && (
+                  <button
+                    onClick={() =>
+                      exportRulesAsJson(rulesDoc.file_name, rules)
+                    }
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-sm text-zinc-200 transition hover:bg-zinc-800"
+                  >
+                    Export JSON
+                  </button>
+                )}
+                <button
+                  onClick={() => setRulesDoc(null)}
+                  aria-label="Close rules"
+                  className="rounded-full border border-zinc-800 px-3 py-1 text-sm text-zinc-300 transition hover:bg-zinc-800"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="mt-5 grid gap-3">
