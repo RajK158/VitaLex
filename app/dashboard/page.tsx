@@ -224,46 +224,31 @@ export default function DashboardPage() {
     const userId = await getCurrentUserId()
     if (!userId) return
 
-    const { count, error } = await supabase
+    const { count, error: comparisonsError } = await supabase
       .from("vitalex_comparisons")
       .select("*", { count: "exact", head: true })
       .eq("user_id", userId)
 
-    if (error) {
-      setComparisonsCount(0)
-      return
+    if (comparisonsError) {
+      console.error("Comparisons count error:", comparisonsError)
     }
 
-    if (typeof count === "number") {
-      setComparisonsCount(count)
-      return
-    }
-
-    const { data: comparisonRows, error: fallbackError } = await supabase
-      .from("vitalex_comparisons")
-      .select("id")
-      .eq("user_id", userId)
-
-    if (fallbackError) {
-      setComparisonsCount(0)
-      return
-    }
-
-    setComparisonsCount(comparisonRows?.length || 0)
+    setComparisonsCount(count || 0)
   }
 
   async function fetchAuditLogs() {
     const userId = await getCurrentUserId()
     if (!userId) return
 
-    const { data, error } = await supabase
+    const { data, error: auditError } = await supabase
       .from("vitalex_audit_logs")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(5)
 
-    if (error) {
+    if (auditError) {
+      console.error("Audit logs fetch error:", auditError)
       return
     }
 
@@ -431,8 +416,21 @@ export default function DashboardPage() {
       setLoading(true)
       setMessage("Deleting document...")
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        setMessage("Please log in again.")
+        router.push("/login")
+        return
+      }
+
       const response = await fetch(`/api/documents/${doc.id}/delete`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       })
 
       const result = await response.json()
@@ -449,6 +447,8 @@ export default function DashboardPage() {
       if (rulesDoc?.id === doc.id) {
         setRulesDoc(null)
       }
+
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
 
       setMessage("Document deleted successfully.")
       await fetchDocuments()

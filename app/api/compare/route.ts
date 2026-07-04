@@ -84,6 +84,10 @@ export async function POST(request: Request) {
   try {
     const userId = await getUserIdFromRequest(request)
 
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = await request.json().catch(() => null)
     const oldDocumentId = body?.oldDocumentId
     const newDocumentId = body?.newDocumentId
@@ -99,6 +103,7 @@ export async function POST(request: Request) {
       .from("vitalex_documents")
       .select("*")
       .eq("id", oldDocumentId)
+      .eq("user_id", userId)
       .single()
 
     if (oldError || !oldDocument) {
@@ -112,6 +117,7 @@ export async function POST(request: Request) {
       .from("vitalex_documents")
       .select("*")
       .eq("id", newDocumentId)
+      .eq("user_id", userId)
       .single()
 
     if (newError || !newDocument) {

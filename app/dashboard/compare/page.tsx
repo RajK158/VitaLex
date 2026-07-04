@@ -142,9 +142,22 @@ export default function ComparePage() {
       setMessage("Comparing documents...")
       setComparison(null)
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        setMessage("Please log in again.")
+        router.push("/login")
+        return
+      }
+
       const response = await fetch("/api/compare", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ oldDocumentId, newDocumentId }),
       })
 

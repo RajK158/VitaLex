@@ -39,6 +39,10 @@ export async function PATCH(
     const { id } = await context.params
     const userId = await getUserIdFromRequest(request)
 
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = await request.json().catch(() => null)
     const approvalStatus = body?.approvalStatus
     const approvalNotes = body?.approvalNotes
@@ -74,12 +78,13 @@ export async function PATCH(
       .from("vitalex_documents")
       .update(updates)
       .eq("id", id)
+      .eq("user_id", userId)
       .select()
       .single()
 
     if (updateError || !updatedDocument) {
       return NextResponse.json(
-        { error: updateError?.message || "Document not found" },
+        { error: "Document not found" },
         { status: 404 }
       )
     }

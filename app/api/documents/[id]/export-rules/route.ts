@@ -58,6 +58,24 @@ export async function POST(
     const { id } = await context.params
     const userId = await getUserIdFromRequest(request)
 
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { data: document, error: documentError } = await supabase
+      .from("vitalex_documents")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .single()
+
+    if (documentError || !document) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      )
+    }
+
     const body = await request.json().catch(() => null)
     const exportFormat = body?.exportFormat
 
@@ -74,6 +92,7 @@ export async function POST(
       .from("vitalex_rules")
       .select("rule_json")
       .eq("document_id", id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: true })
 
     if (rulesError) {

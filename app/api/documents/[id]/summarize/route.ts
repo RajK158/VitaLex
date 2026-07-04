@@ -64,10 +64,15 @@ export async function POST(
     const { id } = await context.params
     const userId = await getUserIdFromRequest(request)
 
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { data: document, error: documentError } = await supabase
       .from("vitalex_documents")
       .select("*")
       .eq("id", id)
+      .eq("user_id", userId)
       .single()
 
     if (documentError || !document) {
