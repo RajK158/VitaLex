@@ -35,25 +35,10 @@ const riskBadgeStyles: Record<string, string> = {
   high: "border-red-500/40 text-red-400",
 }
 
-function exportRulesAsJson(fileName: string, rulesToExport: GeneratedRule[]) {
-  const baseName = fileName.replace(/\.[^/.]+$/, "")
-  const blob = new Blob([JSON.stringify(rulesToExport, null, 2)], {
-    type: "application/json",
-  })
-  const url = URL.createObjectURL(blob)
-
-  const link = document.createElement("a")
-  link.href = url
-  link.download = `vitalex-rules-${baseName}.json`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-type RuleExportFormat = "pseudocode" | "sql" | "python"
+type RuleExportFormat = "json" | "pseudocode" | "sql" | "python"
 
 const ruleExportFormatLabels: Record<RuleExportFormat, string> = {
+  json: "JSON",
   pseudocode: "Pseudocode",
   sql: "SQL",
   python: "Python",
@@ -65,12 +50,17 @@ function downloadRulesExportFile(
   content: string
 ) {
   const baseName = fileName.replace(/\.[^/.]+$/, "")
-  const blob = new Blob([content], { type: "text/plain" })
+  const isJson = format === "json"
+  const blob = new Blob([content], {
+    type: isJson ? "application/json" : "text/plain",
+  })
   const url = URL.createObjectURL(blob)
 
   const link = document.createElement("a")
   link.href = url
-  link.download = `vitalex-rules-${baseName}-${format}.txt`
+  link.download = isJson
+    ? `vitalex-rules-${baseName}.json`
+    : `vitalex-rules-${baseName}-${format}.txt`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
@@ -766,12 +756,13 @@ export default function DashboardPage() {
               {rules.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() =>
-                      exportRulesAsJson(rulesDoc.file_name, rules)
-                    }
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-sm text-zinc-200 transition hover:bg-zinc-800"
+                    onClick={() => exportRulesInFormat(rulesDoc, "json")}
+                    disabled={exportingFormat !== null}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-sm text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
                   >
-                    Export JSON
+                    {exportingFormat === "json"
+                      ? "Exporting..."
+                      : "Export JSON"}
                   </button>
                   <button
                     onClick={() =>

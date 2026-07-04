@@ -12,10 +12,13 @@ const supabase = createClient(supabaseUrl, serviceRoleKey)
 const genAI = new GoogleGenAI({ apiKey: geminiApiKey })
 const GEMINI_MODEL = "gemini-3.5-flash"
 
-const VALID_FORMATS = ["pseudocode", "sql", "python"] as const
+const VALID_FORMATS = ["json", "pseudocode", "sql", "python"] as const
 type ExportFormat = (typeof VALID_FORMATS)[number]
 
-const formatInstructions: Record<ExportFormat, string> = {
+const formatInstructions: Record<
+  Exclude<ExportFormat, "json">,
+  string
+> = {
   pseudocode:
     "Convert each rule into readable, implementation-style pseudocode showing the if/then logic.",
   sql:
@@ -76,11 +79,16 @@ export async function POST(
 
     const rules = ruleRows.map((row) => row.rule_json)
 
-    const geminiResponse = await genAI.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: `Convert the following healthcare policy rules into ${exportFormat} output for developers.
+    let content: string
 
-${formatInstructions[exportFormat as ExportFormat]}
+    if (exportFormat === "json") {
+      content = JSON.stringify(rules, null, 2)
+    } else {
+      const geminiResponse = await genAI.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: `Convert the following healthcare policy rules into ${exportFormat} output for developers.
+
+${formatInstructions[exportFormat as Exclude<ExportFormat, "json">]}
 
 For each rule, include its rule_id and title above the converted logic.
 
@@ -88,19 +96,37 @@ Return plain text only. Do not use markdown code fences or markdown formatting.
 
 Rules:
 ${JSON.stringify(rules, null, 2)}`,
-      config: {
-        systemInstruction:
-          "You convert structured healthcare policy rules into developer-ready code or pseudocode. Respond only with plain text output, no markdown formatting or code fences.",
-      },
-    })
+        config: {
+          systemInstruction:
+            "You convert structured healthcare policy rules into developer-ready code or pseudocode. Respond only with plain text output, no markdown formatting or code fences.",
+        },
+      })
 
-    const content = stripCodeFences(geminiResponse.text || "")
+      content = stripCodeFences(geminiResponse.text || "")
+    }
 
     if (!content) {
       return NextResponse.json(
         { error: "Failed to generate export content." },
         { status: 500 }
       )
+    }
+
+    try {
+      const { error: auditError } = await supabase
+        .from("vitalex_audit_logs")
+        .insert({
+          action: "exported_rules",
+          entity_type: "document",
+          entity_id: id,
+          metadata: { export_format: exportFormat },
+        })
+
+      if (auditError) {
+        console.error("Failed to write audit log:", auditError.message)
+      }
+    } catch (auditException) {
+      console.error("Failed to write audit log:", auditException)
     }
 
     return NextResponse.json({

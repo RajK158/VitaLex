@@ -177,6 +177,26 @@ Return:
       )
     }
 
+    try {
+      const { error: auditError } = await supabase
+        .from("vitalex_audit_logs")
+        .insert({
+          action: "compared_documents",
+          entity_type: "comparison",
+          entity_id: savedComparison.id,
+          metadata: {
+            old_document_id: oldDocumentId,
+            new_document_id: newDocumentId,
+          },
+        })
+
+      if (auditError) {
+        console.error("Failed to write audit log:", auditError.message)
+      }
+    } catch (auditException) {
+      console.error("Failed to write audit log:", auditException)
+    }
+
     return NextResponse.json({
       success: true,
       comparison: savedComparison,

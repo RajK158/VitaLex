@@ -151,6 +151,23 @@ ${limitedContent}`,
       )
     }
 
+    try {
+      const { error: auditError } = await supabase
+        .from("vitalex_audit_logs")
+        .insert({
+          action: "generated_rules",
+          entity_type: "document",
+          entity_id: document.id,
+          metadata: { rule_count: rules.length },
+        })
+
+      if (auditError) {
+        console.error("Failed to write audit log:", auditError.message)
+      }
+    } catch (auditException) {
+      console.error("Failed to write audit log:", auditException)
+    }
+
     return NextResponse.json({
       success: true,
       rules,

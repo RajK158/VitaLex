@@ -137,6 +137,23 @@ ${limitedText}`,
       )
     }
 
+    try {
+      const { error: auditError } = await supabase
+        .from("vitalex_audit_logs")
+        .insert({
+          action: "generated_summary",
+          entity_type: "document",
+          entity_id: id,
+          metadata: { file_name: document.file_name || null },
+        })
+
+      if (auditError) {
+        console.error("Failed to write audit log:", auditError.message)
+      }
+    } catch (auditException) {
+      console.error("Failed to write audit log:", auditException)
+    }
+
     return NextResponse.json({
       success: true,
       summary,
