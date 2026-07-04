@@ -17,6 +17,21 @@ type DocumentRow = {
   status: string | null
   created_at: string
   summary: string | null
+  approval_status: string | null
+}
+
+const approvalStatusLabels: Record<string, string> = {
+  draft: "Draft",
+  in_review: "In Review",
+  approved: "Approved",
+  published: "Published",
+}
+
+const approvalStatusBadgeStyles: Record<string, string> = {
+  draft: "border-zinc-700 text-zinc-300",
+  in_review: "border-amber-500/40 text-amber-400",
+  approved: "border-emerald-500/40 text-emerald-400",
+  published: "border-sky-500/40 text-sky-400",
 }
 
 type GeneratedRule = {
@@ -703,9 +718,22 @@ export default function DashboardPage() {
               >
                 <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
                   <div>
-                    <h3 className="font-semibold">
-                      {doc.file_name}
-                    </h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold">
+                        {doc.file_name}
+                      </h3>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs ${
+                          approvalStatusBadgeStyles[
+                            doc.approval_status || "draft"
+                          ] || "border-zinc-700 text-zinc-300"
+                        }`}
+                      >
+                        {approvalStatusLabels[
+                          doc.approval_status || "draft"
+                        ] || "Draft"}
+                      </span>
+                    </div>
                     <p className="mt-1 text-sm text-zinc-400">
                       {doc.document_type || "Unknown type"} •{" "}
                       {doc.payer || "No payer"} •{" "}
