@@ -287,9 +287,17 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-black px-6 py-10 text-white">
       <div className="mx-auto max-w-6xl">
         <div className="mb-10">
-          <p className="text-sm font-medium uppercase tracking-wider text-zinc-400">
-            VitaLex Dashboard
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm font-medium uppercase tracking-wider text-zinc-400">
+              VitaLex Dashboard
+            </p>
+            <Link
+              href="/dashboard/compare"
+              className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+            >
+              Compare Documents
+            </Link>
+          </div>
           <h1 className="mt-3 text-4xl font-bold tracking-tight">
             Upload healthcare policy documents
           </h1>
