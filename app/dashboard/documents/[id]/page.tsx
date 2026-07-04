@@ -54,6 +54,32 @@ function exportRulesAsJson(fileName: string, rulesToExport: GeneratedRule[]) {
   URL.revokeObjectURL(url)
 }
 
+type RuleExportFormat = "pseudocode" | "sql" | "python"
+
+const ruleExportFormatLabels: Record<RuleExportFormat, string> = {
+  pseudocode: "Pseudocode",
+  sql: "SQL",
+  python: "Python",
+}
+
+function downloadRulesExportFile(
+  fileName: string,
+  format: RuleExportFormat,
+  content: string
+) {
+  const baseName = fileName.replace(/\.[^/.]+$/, "")
+  const blob = new Blob([content], { type: "text/plain" })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `vitalex-rules-${baseName}-${format}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>()
   const id = params?.id
@@ -63,6 +89,52 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState("")
   const [showFullText, setShowFullText] = useState(false)
+  const [exportingFormat, setExportingFormat] = useState<
+    RuleExportFormat | null
+  >(null)
+  const [exportMessage, setExportMessage] = useState("")
+
+  async function exportRulesInFormat(
+    documentToExport: DocumentRow,
+    format: RuleExportFormat
+  ) {
+    try {
+      setExportingFormat(format)
+      setExportMessage(`Exporting ${ruleExportFormatLabels[format]}...`)
+
+      const response = await fetch(
+        `/api/documents/${documentToExport.id}/export-rules`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exportFormat: format }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setExportMessage(
+          result.error ||
+            `Failed to export ${ruleExportFormatLabels[format]}.`
+        )
+        return
+      }
+
+      downloadRulesExportFile(
+        documentToExport.file_name,
+        format,
+        result.content || ""
+      )
+      setExportMessage(
+        `${ruleExportFormatLabels[format]} export downloaded successfully.`
+      )
+    } catch {
+      setExportMessage(`Failed to export ${ruleExportFormatLabels[format]}.`)
+    } finally {
+      setExportingFormat(null)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -180,14 +252,46 @@ export default function DocumentDetailPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-xl font-semibold">Generated Rules</h2>
                 {rules.length > 0 && (
-                  <button
-                    onClick={() => exportRulesAsJson(doc.file_name, rules)}
-                    className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
-                  >
-                    Export JSON
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => exportRulesAsJson(doc.file_name, rules)}
+                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                    >
+                      Export JSON
+                    </button>
+                    <button
+                      onClick={() => exportRulesInFormat(doc, "pseudocode")}
+                      disabled={exportingFormat !== null}
+                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      {exportingFormat === "pseudocode"
+                        ? "Exporting..."
+                        : "Export Pseudocode"}
+                    </button>
+                    <button
+                      onClick={() => exportRulesInFormat(doc, "sql")}
+                      disabled={exportingFormat !== null}
+                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      {exportingFormat === "sql"
+                        ? "Exporting..."
+                        : "Export SQL"}
+                    </button>
+                    <button
+                      onClick={() => exportRulesInFormat(doc, "python")}
+                      disabled={exportingFormat !== null}
+                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      {exportingFormat === "python"
+                        ? "Exporting..."
+                        : "Export Python"}
+                    </button>
+                  </div>
                 )}
               </div>
+              {exportMessage && (
+                <p className="mt-3 text-sm text-zinc-400">{exportMessage}</p>
+              )}
               {rules.length > 0 ? (
                 <div className="mt-4 grid gap-3">
                   {rules.map((rule, index) => (

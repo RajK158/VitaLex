@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 type DocumentRow = {
@@ -50,6 +51,32 @@ function exportRulesAsJson(fileName: string, rulesToExport: GeneratedRule[]) {
   URL.revokeObjectURL(url)
 }
 
+type RuleExportFormat = "pseudocode" | "sql" | "python"
+
+const ruleExportFormatLabels: Record<RuleExportFormat, string> = {
+  pseudocode: "Pseudocode",
+  sql: "SQL",
+  python: "Python",
+}
+
+function downloadRulesExportFile(
+  fileName: string,
+  format: RuleExportFormat,
+  content: string
+) {
+  const baseName = fileName.replace(/\.[^/.]+$/, "")
+  const blob = new Blob([content], { type: "text/plain" })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `vitalex-rules-${baseName}-${format}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null)
   const [documentType, setDocumentType] = useState("Billing Policy")
@@ -64,6 +91,9 @@ export default function DashboardPage() {
   const [rulesByDocument, setRulesByDocument] = useState<
     Record<string, GeneratedRule[]>
   >({})
+  const [exportingFormat, setExportingFormat] = useState<
+    RuleExportFormat | null
+  >(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState("All Types")
   const [statusFilter, setStatusFilter] = useState("All Statuses")
@@ -157,6 +187,44 @@ export default function DashboardPage() {
   function viewRules(doc: DocumentRow) {
     setRules(rulesByDocument[doc.id] || [])
     setRulesDoc(doc)
+  }
+
+  async function exportRulesInFormat(
+    doc: DocumentRow,
+    format: RuleExportFormat
+  ) {
+    try {
+      setExportingFormat(format)
+      setMessage(`Exporting ${ruleExportFormatLabels[format]}...`)
+
+      const response = await fetch(
+        `/api/documents/${doc.id}/export-rules`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exportFormat: format }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setMessage(
+          result.error ||
+            `Failed to export ${ruleExportFormatLabels[format]}.`
+        )
+        return
+      }
+
+      downloadRulesExportFile(doc.file_name, format, result.content || "")
+      setMessage(
+        `${ruleExportFormatLabels[format]} export downloaded successfully.`
+      )
+    } catch {
+      setMessage(`Failed to export ${ruleExportFormatLabels[format]}.`)
+    } finally {
+      setExportingFormat(null)
+    }
   }
 
   async function deleteDocument(doc: DocumentRow) {
@@ -565,8 +633,8 @@ export default function DashboardPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-white">
+              <div className="min-w-0">
+                <h3 className="break-words font-semibold text-white">
                   {summaryDoc.file_name}
                 </h3>
                 <p className="mt-1 text-sm text-zinc-400">
@@ -578,9 +646,9 @@ export default function DashboardPage() {
               <button
                 onClick={() => setSummaryDoc(null)}
                 aria-label="Close summary"
-                className="shrink-0 rounded-full border border-zinc-800 px-3 py-1 text-sm text-zinc-300 transition hover:bg-zinc-800"
+                className="shrink-0 rounded-full border border-zinc-800 p-2 text-zinc-300 transition hover:bg-zinc-800"
               >
-                Close
+                <X className="size-4" />
               </button>
             </div>
 
@@ -599,22 +667,32 @@ export default function DashboardPage() {
           onClick={() => setRulesDoc(null)}
         >
           <div
-            className="max-h-[80vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-6"
+            className="max-h-[80vh] w-full max-w-4xl overflow-y-auto overflow-x-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-white">
-                  Generated Rules — {rulesDoc.file_name}
-                </h3>
-                <p className="mt-1 text-sm text-zinc-400">
-                  {rulesDoc.document_type || "Unknown type"} •{" "}
-                  {rulesDoc.payer || "No payer"} •{" "}
-                  {rulesDoc.department || "No department"}
-                </p>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="break-words font-semibold text-white">
+                    Generated Rules — {rulesDoc.file_name}
+                  </h3>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    {rulesDoc.document_type || "Unknown type"} •{" "}
+                    {rulesDoc.payer || "No payer"} •{" "}
+                    {rulesDoc.department || "No department"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setRulesDoc(null)}
+                  aria-label="Close rules"
+                  className="shrink-0 rounded-full border border-zinc-800 p-2 text-zinc-300 transition hover:bg-zinc-800"
+                >
+                  <X className="size-4" />
+                </button>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {rules.length > 0 && (
+
+              {rules.length > 0 && (
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() =>
                       exportRulesAsJson(rulesDoc.file_name, rules)
@@ -623,15 +701,37 @@ export default function DashboardPage() {
                   >
                     Export JSON
                   </button>
-                )}
-                <button
-                  onClick={() => setRulesDoc(null)}
-                  aria-label="Close rules"
-                  className="rounded-full border border-zinc-800 px-3 py-1 text-sm text-zinc-300 transition hover:bg-zinc-800"
-                >
-                  Close
-                </button>
-              </div>
+                  <button
+                    onClick={() =>
+                      exportRulesInFormat(rulesDoc, "pseudocode")
+                    }
+                    disabled={exportingFormat !== null}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-sm text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                  >
+                    {exportingFormat === "pseudocode"
+                      ? "Exporting..."
+                      : "Export Pseudocode"}
+                  </button>
+                  <button
+                    onClick={() => exportRulesInFormat(rulesDoc, "sql")}
+                    disabled={exportingFormat !== null}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-sm text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                  >
+                    {exportingFormat === "sql"
+                      ? "Exporting..."
+                      : "Export SQL"}
+                  </button>
+                  <button
+                    onClick={() => exportRulesInFormat(rulesDoc, "python")}
+                    disabled={exportingFormat !== null}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-sm text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                  >
+                    {exportingFormat === "python"
+                      ? "Exporting..."
+                      : "Export Python"}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 grid gap-3">

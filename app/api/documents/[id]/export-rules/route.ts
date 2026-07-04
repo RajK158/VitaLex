@@ -1,0 +1,116 @@
+import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+import { GoogleGenAI } from "@google/genai"
+
+export const runtime = "nodejs"
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const geminiApiKey = process.env.GEMINI_API_KEY!
+
+const supabase = createClient(supabaseUrl, serviceRoleKey)
+const genAI = new GoogleGenAI({ apiKey: geminiApiKey })
+const GEMINI_MODEL = "gemini-3.5-flash"
+
+const VALID_FORMATS = ["pseudocode", "sql", "python"] as const
+type ExportFormat = (typeof VALID_FORMATS)[number]
+
+const formatInstructions: Record<ExportFormat, string> = {
+  pseudocode:
+    "Convert each rule into readable, implementation-style pseudocode showing the if/then logic.",
+  sql:
+    "Convert each rule into SQL-style CASE WHEN logic or validation queries that check the rule's condition.",
+  python:
+    "Convert each rule into a simple Python-style condition function implementing the rule's if/then logic.",
+}
+
+function stripCodeFences(text: string) {
+  return text
+    .trim()
+    .replace(/^```(?:[a-zA-Z]*)?\s*/, "")
+    .replace(/\s*```$/, "")
+    .trim()
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params
+
+    const body = await request.json().catch(() => null)
+    const exportFormat = body?.exportFormat
+
+    if (!VALID_FORMATS.includes(exportFormat)) {
+      return NextResponse.json(
+        {
+          error: `exportFormat must be one of: ${VALID_FORMATS.join(", ")}`,
+        },
+        { status: 400 }
+      )
+    }
+
+    const { data: ruleRows, error: rulesError } = await supabase
+      .from("vitalex_rules")
+      .select("rule_json")
+      .eq("document_id", id)
+      .order("created_at", { ascending: true })
+
+    if (rulesError) {
+      return NextResponse.json(
+        { error: rulesError.message },
+        { status: 500 }
+      )
+    }
+
+    if (!ruleRows || ruleRows.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "No rules found for this document. Please generate rules first.",
+        },
+        { status: 404 }
+      )
+    }
+
+    const rules = ruleRows.map((row) => row.rule_json)
+
+    const geminiResponse = await genAI.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: `Convert the following healthcare policy rules into ${exportFormat} output for developers.
+
+${formatInstructions[exportFormat as ExportFormat]}
+
+For each rule, include its rule_id and title above the converted logic.
+
+Return plain text only. Do not use markdown code fences or markdown formatting.
+
+Rules:
+${JSON.stringify(rules, null, 2)}`,
+      config: {
+        systemInstruction:
+          "You convert structured healthcare policy rules into developer-ready code or pseudocode. Respond only with plain text output, no markdown formatting or code fences.",
+      },
+    })
+
+    const content = stripCodeFences(geminiResponse.text || "")
+
+    if (!content) {
+      return NextResponse.json(
+        { error: "Failed to generate export content." },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      format: exportFormat,
+      content,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Something went wrong"
+
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
