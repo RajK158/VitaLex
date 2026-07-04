@@ -94,6 +94,77 @@ const roleLabels: Record<string, string> = {
   viewer: "Viewer",
 }
 
+type RolePermissions = {
+  canUpload: boolean
+  canGenerateSummary: boolean
+  canGenerateRules: boolean
+  canExportRules: boolean
+  canCompare: boolean
+  canUpdateApproval: boolean
+  canDelete: boolean
+}
+
+const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
+  admin: {
+    canUpload: true,
+    canGenerateSummary: true,
+    canGenerateRules: true,
+    canExportRules: true,
+    canCompare: true,
+    canUpdateApproval: true,
+    canDelete: true,
+  },
+  compliance: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: false,
+    canExportRules: true,
+    canCompare: true,
+    canUpdateApproval: true,
+    canDelete: false,
+  },
+  billing_coding: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: true,
+    canExportRules: true,
+    canCompare: true,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+  analyst: {
+    canUpload: true,
+    canGenerateSummary: true,
+    canGenerateRules: false,
+    canExportRules: false,
+    canCompare: true,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+  developer: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: false,
+    canExportRules: true,
+    canCompare: false,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+  viewer: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: false,
+    canExportRules: false,
+    canCompare: false,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+}
+
+function getRolePermissions(role: string | null | undefined): RolePermissions {
+  return ROLE_PERMISSIONS[role || "viewer"] || ROLE_PERMISSIONS.viewer
+}
+
 function formatAuditMetadata(metadata: Record<string, unknown> | null) {
   if (!metadata) return null
 
@@ -682,6 +753,8 @@ export default function DashboardPage() {
     }
   }
 
+  const permissions = getRolePermissions(profile?.role)
+
   if (!authChecked) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -704,12 +777,14 @@ export default function DashboardPage() {
                   Role: {roleLabels[profile.role] || profile.role}
                 </span>
               )}
-              <Link
-                href="/dashboard/compare"
-                className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
-              >
-                Compare Documents
-              </Link>
+              {permissions.canCompare && (
+                <Link
+                  href="/dashboard/compare"
+                  className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                >
+                  Compare Documents
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="rounded-full border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
@@ -790,68 +865,76 @@ export default function DashboardPage() {
         </section>
 
         <section className="mb-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm text-zinc-300">
-                Document file
-              </label>
-              <input
-                type="file"
-                accept=".pdf,.docx,.txt"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
-              />
-            </div>
+          {permissions.canUpload ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-300">
+                    Document file
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.txt"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                  />
+                </div>
 
-            <div>
-              <label className="mb-2 block text-sm text-zinc-300">
-                Document type
-              </label>
-              <select
-                value={documentType}
-                onChange={(e) => setDocumentType(e.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-300">
+                    Document type
+                  </label>
+                  <select
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value)}
+                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                  >
+                    <option>Billing Policy</option>
+                    <option>Coding Rule</option>
+                    <option>Clinical Guideline</option>
+                    <option>Payer-Provider Contract</option>
+                    <option>Compliance Policy</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-300">
+                    Payer
+                  </label>
+                  <input
+                    value={payer}
+                    onChange={(e) => setPayer(e.target.value)}
+                    placeholder="Example: CMS, Aetna, UnitedHealthcare"
+                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-300">
+                    Department
+                  </label>
+                  <input
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="Example: Billing, Compliance, Clinical Ops"
+                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleUpload}
+                disabled={loading}
+                className="mt-6 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
               >
-                <option>Billing Policy</option>
-                <option>Coding Rule</option>
-                <option>Clinical Guideline</option>
-                <option>Payer-Provider Contract</option>
-                <option>Compliance Policy</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm text-zinc-300">
-                Payer
-              </label>
-              <input
-                value={payer}
-                onChange={(e) => setPayer(e.target.value)}
-                placeholder="Example: CMS, Aetna, UnitedHealthcare"
-                className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm text-zinc-300">
-                Department
-              </label>
-              <input
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="Example: Billing, Compliance, Clinical Ops"
-                className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={handleUpload}
-            disabled={loading}
-            className="mt-6 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
-          >
-            {loading ? "Uploading..." : "Upload Document"}
-          </button>
+                {loading ? "Uploading..." : "Upload Document"}
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-zinc-400">
+              Your role does not allow document uploads.
+            </p>
+          )}
 
           {message && (
             <p className="mt-4 text-sm text-zinc-300">
@@ -990,7 +1073,7 @@ export default function DashboardPage() {
                           >
                             View Rules
                           </button>
-                        ) : (
+                        ) : permissions.canGenerateRules ? (
                           <button
                             onClick={() => generateRules(doc)}
                             disabled={loading}
@@ -998,9 +1081,13 @@ export default function DashboardPage() {
                           >
                             Generate Rules
                           </button>
+                        ) : (
+                          <span className="text-xs text-zinc-500">
+                            Your role does not allow generating rules.
+                          </span>
                         )}
                       </>
-                    ) : (
+                    ) : permissions.canGenerateSummary ? (
                       <button
                         onClick={() => generateSummary(doc.id)}
                         disabled={loading}
@@ -1008,6 +1095,10 @@ export default function DashboardPage() {
                       >
                         Generate Summary
                       </button>
+                    ) : (
+                      <span className="text-xs text-zinc-500">
+                        Your role does not allow generating summaries.
+                      </span>
                     )}
 
                     {doc.status !== "summarized" && (
@@ -1023,13 +1114,15 @@ export default function DashboardPage() {
                       Open
                     </Link>
 
-                    <button
-                      onClick={() => deleteDocument(doc)}
-                      disabled={loading}
-                      className="rounded-full border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:border-red-500/50 hover:text-red-400 disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
+                    {permissions.canDelete && (
+                      <button
+                        onClick={() => deleteDocument(doc)}
+                        disabled={loading}
+                        className="rounded-full border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:border-red-500/50 hover:text-red-400 disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
+                    )}
                     </div>
                 </div>
               </div>
@@ -1118,7 +1211,13 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {rules.length > 0 && (
+              {rules.length > 0 && !permissions.canExportRules && (
+                <p className="text-sm text-zinc-400">
+                  Your role does not allow exporting rules.
+                </p>
+              )}
+
+              {rules.length > 0 && permissions.canExportRules && (
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => exportRulesInFormat(rulesDoc, "json")}

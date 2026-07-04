@@ -56,6 +56,77 @@ const approvalStatusLabels: Record<string, string> = {
   published: "Published",
 }
 
+type RolePermissions = {
+  canUpload: boolean
+  canGenerateSummary: boolean
+  canGenerateRules: boolean
+  canExportRules: boolean
+  canCompare: boolean
+  canUpdateApproval: boolean
+  canDelete: boolean
+}
+
+const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
+  admin: {
+    canUpload: true,
+    canGenerateSummary: true,
+    canGenerateRules: true,
+    canExportRules: true,
+    canCompare: true,
+    canUpdateApproval: true,
+    canDelete: true,
+  },
+  compliance: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: false,
+    canExportRules: true,
+    canCompare: true,
+    canUpdateApproval: true,
+    canDelete: false,
+  },
+  billing_coding: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: true,
+    canExportRules: true,
+    canCompare: true,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+  analyst: {
+    canUpload: true,
+    canGenerateSummary: true,
+    canGenerateRules: false,
+    canExportRules: false,
+    canCompare: true,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+  developer: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: false,
+    canExportRules: true,
+    canCompare: false,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+  viewer: {
+    canUpload: false,
+    canGenerateSummary: false,
+    canGenerateRules: false,
+    canExportRules: false,
+    canCompare: false,
+    canUpdateApproval: false,
+    canDelete: false,
+  },
+}
+
+function getRolePermissions(role: string | null | undefined): RolePermissions {
+  return ROLE_PERMISSIONS[role || "viewer"] || ROLE_PERMISSIONS.viewer
+}
+
 type RuleExportFormat = "json" | "pseudocode" | "sql" | "python"
 
 const ruleExportFormatLabels: Record<RuleExportFormat, string> = {
@@ -107,6 +178,7 @@ export default function DocumentDetailPage() {
   const [approvalNotesInput, setApprovalNotesInput] = useState("")
   const [approvalUpdating, setApprovalUpdating] = useState(false)
   const [approvalMessage, setApprovalMessage] = useState("")
+  const [profile, setProfile] = useState<{ role: string } | null>(null)
 
   async function updateApprovalStatus() {
     if (!doc) return
@@ -185,6 +257,25 @@ export default function DocumentDetailPage() {
     }
   }
 
+  async function fetchProfileRole(userId: string) {
+    if (profile) return
+
+    const { data, error } = await supabase
+      .from("vitalex_profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle()
+
+    if (error) {
+      console.error("Profile fetch error:", error)
+      return
+    }
+
+    if (data) {
+      setProfile(data)
+    }
+  }
+
   useEffect(() => {
     async function checkAuth() {
       const { data } = await supabase.auth.getSession()
@@ -193,6 +284,8 @@ export default function DocumentDetailPage() {
         router.push("/login")
         return
       }
+
+      await fetchProfileRole(data.session.user.id)
 
       setAuthChecked(true)
     }
@@ -264,6 +357,8 @@ export default function DocumentDetailPage() {
 
     fetchDocument()
   }, [id, router])
+
+  const permissions = getRolePermissions(profile?.role)
 
   if (!authChecked) {
     return (
@@ -354,45 +449,57 @@ export default function DocumentDetailPage() {
                 )}
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm text-zinc-300">
-                    Approval status
-                  </label>
-                  <select
-                    value={approvalStatusInput}
-                    onChange={(e) => setApprovalStatusInput(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+              {permissions.canUpdateApproval ? (
+                <>
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm text-zinc-300">
+                        Approval status
+                      </label>
+                      <select
+                        value={approvalStatusInput}
+                        onChange={(e) =>
+                          setApprovalStatusInput(e.target.value)
+                        }
+                        className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                      >
+                        {APPROVAL_STATUS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm text-zinc-300">
+                        Approval notes
+                      </label>
+                      <textarea
+                        value={approvalNotesInput}
+                        onChange={(e) =>
+                          setApprovalNotesInput(e.target.value)
+                        }
+                        placeholder="Optional notes about this approval decision"
+                        rows={3}
+                        className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={updateApprovalStatus}
+                    disabled={approvalUpdating}
+                    className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
                   >
-                    {APPROVAL_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-zinc-300">
-                    Approval notes
-                  </label>
-                  <textarea
-                    value={approvalNotesInput}
-                    onChange={(e) => setApprovalNotesInput(e.target.value)}
-                    placeholder="Optional notes about this approval decision"
-                    rows={3}
-                    className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={updateApprovalStatus}
-                disabled={approvalUpdating}
-                className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
-              >
-                {approvalUpdating ? "Updating..." : "Update Status"}
-              </button>
+                    {approvalUpdating ? "Updating..." : "Update Status"}
+                  </button>
+                </>
+              ) : (
+                <p className="mt-4 text-sm text-zinc-400">
+                  Your role does not allow updating approval status.
+                </p>
+              )}
 
               {approvalMessage && (
                 <p className="mt-3 text-sm text-zinc-300">
@@ -419,7 +526,7 @@ export default function DocumentDetailPage() {
             <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-xl font-semibold">Generated Rules</h2>
-                {rules.length > 0 && (
+                {rules.length > 0 && permissions.canExportRules && (
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => exportRulesInFormat(doc, "json")}
@@ -458,6 +565,11 @@ export default function DocumentDetailPage() {
                         : "Export Python"}
                     </button>
                   </div>
+                )}
+                {rules.length > 0 && !permissions.canExportRules && (
+                  <p className="text-sm text-zinc-400">
+                    Your role does not allow exporting rules.
+                  </p>
                 )}
               </div>
               {exportMessage && (
