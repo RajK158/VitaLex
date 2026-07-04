@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { ArrowRight, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DashboardMockup } from "@/components/dashboard-mockup"
@@ -58,10 +59,10 @@ export function Hero() {
               className="bg-background text-foreground hover:bg-background/90"
               asChild
             >
-              <a href="#contact">
+              <Link href="/signup">
                 Get Started
                 <ArrowRight className="size-4" />
-              </a>
+              </Link>
             </Button>
             <Button
               size="lg"

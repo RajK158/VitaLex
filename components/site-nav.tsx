@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
@@ -21,10 +22,10 @@ export function SiteNav() {
         aria-label="Primary"
         className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8"
       >
-        <a href="#" className="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href="/" className="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Logo />
           <span className="sr-only">VitaLex home</span>
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (
@@ -40,10 +41,10 @@ export function SiteNav() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
-            <a href="#">Sign in</a>
+            <Link href="/login">Sign in</Link>
           </Button>
           <Button asChild>
-            <a href="#contact">Get Started</a>
+            <Link href="/signup">Get Started</Link>
           </Button>
         </div>
 
@@ -74,10 +75,10 @@ export function SiteNav() {
             ))}
             <div className="mt-2 flex flex-col gap-2">
               <Button variant="outline" asChild>
-                <a href="#" onClick={() => setOpen(false)}>Sign in</a>
+                <Link href="/login" onClick={() => setOpen(false)}>Sign in</Link>
               </Button>
               <Button asChild>
-                <a href="#contact" onClick={() => setOpen(false)}>Get Started</a>
+                <Link href="/signup" onClick={() => setOpen(false)}>Get Started</Link>
               </Button>
             </div>
           </div>

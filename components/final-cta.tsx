@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -41,10 +42,10 @@ export function FinalCta() {
                 className="bg-background text-foreground hover:bg-background/90"
                 asChild
               >
-                <a href="#contact">
+                <Link href="/signup">
                   Get Started
                   <ArrowRight className="size-4" />
-                </a>
+                </Link>
               </Button>
               <Button
                 size="lg"
