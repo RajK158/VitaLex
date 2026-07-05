@@ -56,6 +56,37 @@ const approvalStatusLabels: Record<string, string> = {
   published: "Published",
 }
 
+const approvalStatusBadgeStyles: Record<string, string> = {
+  draft: "border-zinc-700 text-zinc-300",
+  in_review: "border-amber-500/40 text-amber-400",
+  approved: "border-emerald-500/40 text-emerald-400",
+  published: "border-sky-500/40 text-sky-400",
+}
+
+const roleLabels: Record<string, string> = {
+  admin: "Admin",
+  compliance: "Compliance",
+  billing_coding: "Billing/Coding",
+  analyst: "Analyst",
+  developer: "Developer",
+  viewer: "Viewer",
+}
+
+const inputClassName =
+  "w-full rounded-xl border border-zinc-800/80 bg-black/60 px-4 py-3 text-sm text-zinc-200 transition placeholder:text-zinc-600 hover:border-zinc-700 focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700/50"
+
+const sectionCardClassName =
+  "rounded-2xl border border-zinc-800/80 bg-zinc-950/90 shadow-sm shadow-black/20"
+
+const primaryButtonClassName =
+  "rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
+
+const secondaryButtonClassName =
+  "rounded-full border border-zinc-700/80 bg-zinc-950 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-900 disabled:opacity-50"
+
+const headerButtonClassName =
+  "rounded-full border border-zinc-800 bg-zinc-950/80 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-900"
+
 type RolePermissions = {
   canUpload: boolean
   canGenerateSummary: boolean
@@ -363,63 +394,99 @@ export default function DocumentDetailPage() {
   if (!authChecked) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
-        <p className="text-zinc-400">Checking authentication...</p>
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+            Vitalex
+          </p>
+          <p className="mt-3 text-sm text-zinc-400">Checking authentication...</p>
+        </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-black px-6 py-10 text-white">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <main className="relative min-h-screen bg-black text-white">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 opacity-[0.08]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "44px 44px",
+          maskImage:
+            "radial-gradient(ellipse 70% 60% at 50% 0%, black 20%, transparent 80%)",
+        }}
+      />
+
+      <header className="sticky top-0 z-40 border-b border-zinc-900/80 bg-black/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 px-6 py-4 sm:px-8">
           <Link
             href="/dashboard"
-            className="text-sm text-zinc-400 transition hover:text-white"
+            className="text-sm font-medium text-zinc-400 transition hover:text-white"
           >
             ← Back to Dashboard
           </Link>
-          <button
-            onClick={handleLogout}
-            className="rounded-full border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
-          >
-            Logout
-          </button>
-        </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            {profile && (
+              <span className={headerButtonClassName}>
+                Role: {roleLabels[profile.role] || profile.role}
+              </span>
+            )}
+            <button onClick={handleLogout} className={headerButtonClassName}>
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="relative mx-auto max-w-4xl px-6 py-10 sm:px-8">
         {loading && (
-          <p className="mt-8 text-zinc-400">Loading document...</p>
+          <div className={`${sectionCardClassName} mt-6 px-6 py-10 text-center`}>
+            <p className="text-sm text-zinc-400">Loading document...</p>
+          </div>
         )}
 
         {!loading && !doc && (
-          <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-zinc-300">
+          <div className={`${sectionCardClassName} mt-6 p-6 sm:p-7`}>
+            <p className="text-sm text-zinc-300">
               {message || "This document could not be found."}
             </p>
           </div>
         )}
 
         {!loading && doc && (
-          <>
-            <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <p className="text-sm font-medium uppercase tracking-wider text-zinc-400">
+          <div className="mt-6 grid gap-6">
+            <div className={`${sectionCardClassName} p-6 sm:p-7`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
                 Document Detail
               </p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight">
+              <h1 className="mt-2 break-words text-3xl font-bold tracking-tight text-white">
                 {doc.file_name}
               </h1>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                <span className="rounded-full border border-zinc-700/80 px-3 py-1 text-xs text-zinc-300">
                   {doc.document_type || "Unknown type"}
                 </span>
-                <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                <span className="rounded-full border border-zinc-700/80 px-3 py-1 text-xs text-zinc-300">
                   Payer: {doc.payer || "None"}
                 </span>
-                <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                <span className="rounded-full border border-zinc-700/80 px-3 py-1 text-xs text-zinc-300">
                   Department: {doc.department || "None"}
                 </span>
-                <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300">
+                <span className="rounded-full bg-zinc-800/80 px-3 py-1 text-xs capitalize text-zinc-300">
                   {doc.status}
+                </span>
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    approvalStatusBadgeStyles[
+                      doc.approval_status || "draft"
+                    ] || "border-zinc-700 text-zinc-300"
+                  }`}
+                >
+                  {approvalStatusLabels[doc.approval_status || "draft"] ||
+                    "Draft"}
                 </span>
               </div>
 
@@ -428,22 +495,29 @@ export default function DocumentDetailPage() {
               </p>
             </div>
 
-            <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <h2 className="text-xl font-semibold">Approval Workflow</h2>
+            <div className={`${sectionCardClassName} p-6 sm:p-7`}>
+              <div>
+                <h2 className="text-lg font-semibold text-white">
+                  Approval Workflow
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Review and update document approval status
+                </p>
+              </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="rounded-full border border-zinc-700/80 px-3 py-1 text-xs text-zinc-300">
                   Status:{" "}
                   {approvalStatusLabels[doc.approval_status || "draft"] ||
                     "Draft"}
                 </span>
                 {doc.approved_at && (
-                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                  <span className="rounded-full border border-zinc-700/80 px-3 py-1 text-xs text-zinc-300">
                     Approved: {new Date(doc.approved_at).toLocaleString()}
                   </span>
                 )}
                 {doc.published_at && (
-                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                  <span className="rounded-full border border-zinc-700/80 px-3 py-1 text-xs text-zinc-300">
                     Published: {new Date(doc.published_at).toLocaleString()}
                   </span>
                 )}
@@ -453,7 +527,7 @@ export default function DocumentDetailPage() {
                 <>
                   <div className="mt-5 grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm text-zinc-300">
+                      <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-500">
                         Approval status
                       </label>
                       <select
@@ -461,7 +535,7 @@ export default function DocumentDetailPage() {
                         onChange={(e) =>
                           setApprovalStatusInput(e.target.value)
                         }
-                        className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                        className={inputClassName}
                       >
                         {APPROVAL_STATUS_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -472,7 +546,7 @@ export default function DocumentDetailPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm text-zinc-300">
+                      <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-500">
                         Approval notes
                       </label>
                       <textarea
@@ -482,7 +556,7 @@ export default function DocumentDetailPage() {
                         }
                         placeholder="Optional notes about this approval decision"
                         rows={3}
-                        className="w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"
+                        className={inputClassName}
                       />
                     </div>
                   </div>
@@ -490,48 +564,64 @@ export default function DocumentDetailPage() {
                   <button
                     onClick={updateApprovalStatus}
                     disabled={approvalUpdating}
-                    className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-50"
+                    className={`mt-4 ${primaryButtonClassName}`}
                   >
                     {approvalUpdating ? "Updating..." : "Update Status"}
                   </button>
                 </>
               ) : (
-                <p className="mt-4 text-sm text-zinc-400">
-                  Your role does not allow updating approval status.
-                </p>
+                <div className="mt-5 rounded-xl border border-dashed border-zinc-800 bg-black/30 px-4 py-5">
+                  <p className="text-sm text-zinc-400">
+                    Your role does not allow updating approval status.
+                  </p>
+                </div>
               )}
 
               {approvalMessage && (
-                <p className="mt-3 text-sm text-zinc-300">
+                <p className="mt-4 rounded-xl border border-zinc-800/80 bg-black/40 px-4 py-3 text-sm text-zinc-300">
                   {approvalMessage}
                 </p>
               )}
             </div>
 
-            <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <h2 className="text-xl font-semibold">Summary</h2>
+            <div className={`${sectionCardClassName} p-6 sm:p-7`}>
+              <div>
+                <h2 className="text-lg font-semibold text-white">Summary</h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  AI-generated overview of this document
+                </p>
+              </div>
               {doc.summary ? (
-                <div className="mt-4 rounded-xl border border-zinc-800 bg-black p-4">
-                  <p className="whitespace-pre-line text-sm leading-6 text-zinc-300">
+                <div className="mt-5 rounded-xl border border-zinc-800/80 bg-black/50 p-5">
+                  <p className="whitespace-pre-line text-sm leading-7 text-zinc-300">
                     {doc.summary}
                   </p>
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-zinc-400">
-                  No summary has been generated for this document yet.
-                </p>
+                <div className="mt-5 rounded-xl border border-dashed border-zinc-800 bg-black/30 px-4 py-8 text-center">
+                  <p className="text-sm text-zinc-400">
+                    No summary has been generated for this document yet.
+                  </p>
+                </div>
               )}
             </div>
 
-            <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-xl font-semibold">Generated Rules</h2>
+            <div className={`${sectionCardClassName} p-6 sm:p-7`}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    Generated Rules
+                  </h2>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    Structured rules extracted from this document
+                  </p>
+                </div>
                 {rules.length > 0 && permissions.canExportRules && (
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => exportRulesInFormat(doc, "json")}
                       disabled={exportingFormat !== null}
-                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                      className={secondaryButtonClassName}
                     >
                       {exportingFormat === "json"
                         ? "Exporting..."
@@ -540,7 +630,7 @@ export default function DocumentDetailPage() {
                     <button
                       onClick={() => exportRulesInFormat(doc, "pseudocode")}
                       disabled={exportingFormat !== null}
-                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                      className={secondaryButtonClassName}
                     >
                       {exportingFormat === "pseudocode"
                         ? "Exporting..."
@@ -549,7 +639,7 @@ export default function DocumentDetailPage() {
                     <button
                       onClick={() => exportRulesInFormat(doc, "sql")}
                       disabled={exportingFormat !== null}
-                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                      className={secondaryButtonClassName}
                     >
                       {exportingFormat === "sql"
                         ? "Exporting..."
@@ -558,7 +648,7 @@ export default function DocumentDetailPage() {
                     <button
                       onClick={() => exportRulesInFormat(doc, "python")}
                       disabled={exportingFormat !== null}
-                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-50"
+                      className={secondaryButtonClassName}
                     >
                       {exportingFormat === "python"
                         ? "Exporting..."
@@ -572,22 +662,26 @@ export default function DocumentDetailPage() {
                   </p>
                 )}
               </div>
+
               {exportMessage && (
-                <p className="mt-3 text-sm text-zinc-400">{exportMessage}</p>
+                <p className="mt-4 rounded-xl border border-zinc-800/80 bg-black/40 px-4 py-3 text-sm text-zinc-400">
+                  {exportMessage}
+                </p>
               )}
+
               {rules.length > 0 ? (
-                <div className="mt-4 grid gap-3">
+                <div className="mt-5 grid gap-3">
                   {rules.map((rule, index) => (
                     <div
                       key={`${rule.rule_id}-${index}`}
-                      className="rounded-xl border border-zinc-800 bg-black p-4"
+                      className="rounded-xl border border-zinc-800/80 bg-black/50 p-4 transition hover:border-zinc-700/80"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-sm font-semibold text-white">
                           {rule.rule_id} — {rule.title}
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                          <span className="rounded-full border border-zinc-700/80 px-3 py-1 text-xs text-zinc-300">
                             {rule.department}
                           </span>
                           <span
@@ -621,25 +715,32 @@ export default function DocumentDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-zinc-400">
-                  No rules have been generated for this document yet.
-                </p>
+                <div className="mt-5 rounded-xl border border-dashed border-zinc-800 bg-black/30 px-4 py-8 text-center">
+                  <p className="text-sm text-zinc-400">
+                    No rules have been generated for this document yet.
+                  </p>
+                </div>
               )}
             </div>
 
-            <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-xl font-semibold">
-                  {showFullText
-                    ? "Extracted Text (Full)"
-                    : "Extracted Text Preview"}
-                </h2>
+            <div className={`${sectionCardClassName} p-6 sm:p-7`}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    {showFullText
+                      ? "Extracted Text (Full)"
+                      : "Extracted Text Preview"}
+                  </h2>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    Raw text extracted from the uploaded file
+                  </p>
+                </div>
 
                 {doc.extracted_text &&
                   doc.extracted_text.length > EXTRACTED_TEXT_PREVIEW_LENGTH && (
                     <button
                       onClick={() => setShowFullText((prev) => !prev)}
-                      className="rounded-full border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                      className={secondaryButtonClassName}
                     >
                       {showFullText ? "Show Preview" : "View Full Text"}
                     </button>
@@ -648,8 +749,8 @@ export default function DocumentDetailPage() {
 
               {doc.extracted_text ? (
                 <>
-                  <div className="mt-4 max-h-96 overflow-y-auto rounded-xl border border-zinc-800 bg-black p-4">
-                    <p className="whitespace-pre-line text-sm leading-6 text-zinc-300">
+                  <div className="mt-5 max-h-[28rem] overflow-y-auto rounded-xl border border-zinc-800/80 bg-black/50 p-5">
+                    <p className="whitespace-pre-line font-mono text-sm leading-7 text-zinc-300">
                       {showFullText
                         ? doc.extracted_text
                         : doc.extracted_text.slice(
@@ -665,18 +766,20 @@ export default function DocumentDetailPage() {
                   {!showFullText &&
                     doc.extracted_text.length >
                       EXTRACTED_TEXT_PREVIEW_LENGTH && (
-                      <p className="mt-2 text-xs text-zinc-500">
+                      <p className="mt-3 text-xs text-zinc-500">
                         Showing first 3,000 characters of extracted text.
                       </p>
                     )}
                 </>
               ) : (
-                <p className="mt-3 text-sm text-zinc-400">
-                  No extracted text is available for this document yet.
-                </p>
+                <div className="mt-5 rounded-xl border border-dashed border-zinc-800 bg-black/30 px-4 py-8 text-center">
+                  <p className="text-sm text-zinc-400">
+                    No extracted text is available for this document yet.
+                  </p>
+                </div>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </main>
