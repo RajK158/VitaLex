@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { X } from "lucide-react"
+import { Logo } from "@/components/logo"
 import { supabase } from "@/lib/supabase"
 
 type DocumentRow = {
@@ -799,13 +800,16 @@ export default function DashboardPage() {
 
       <header className="sticky top-0 z-40 border-b border-zinc-900/80 bg-black/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4 sm:px-8 lg:px-10">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-              Vitalex Dashboard
-            </p>
-            <p className="mt-1 text-sm text-zinc-400">
-              Healthcare policy intelligence workspace
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <Logo textClassName="sr-only" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                Vitalex Dashboard
+              </p>
+              <p className="mt-1 text-sm text-zinc-400">
+                Healthcare policy intelligence workspace
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
