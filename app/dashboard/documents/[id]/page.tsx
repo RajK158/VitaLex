@@ -190,6 +190,23 @@ function downloadRulesExportFile(
   URL.revokeObjectURL(url)
 }
 
+function cleanSummaryForDisplay(summary: string): string {
+  return summary
+    .split("\n")
+    .map((line) => {
+      let cleaned = line.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, "").trim()
+
+      if (/^[-*_]{3,}$/.test(cleaned)) {
+        return ""
+      }
+
+      return cleaned
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -594,7 +611,7 @@ export default function DocumentDetailPage() {
               {doc.summary ? (
                 <div className="mt-5 rounded-xl border border-zinc-800/80 bg-black/50 p-5">
                   <p className="whitespace-pre-line text-sm leading-7 text-zinc-300">
-                    {doc.summary}
+                    {cleanSummaryForDisplay(doc.summary)}
                   </p>
                 </div>
               ) : (
