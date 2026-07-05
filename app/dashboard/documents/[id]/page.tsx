@@ -235,9 +235,22 @@ export default function DocumentDetailPage() {
       setApprovalUpdating(true)
       setApprovalMessage("")
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        setApprovalMessage("Please log in again.")
+        router.push("/login")
+        return
+      }
+
       const response = await fetch(`/api/documents/${doc.id}/approval`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           approvalStatus: approvalStatusInput,
           approvalNotes: approvalNotesInput,
